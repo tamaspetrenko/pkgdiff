@@ -2084,6 +2084,11 @@ sub createFileView($$$)
 sub getReportFiles()
 {
     my $Report = "";
+    my $ChangedFiles = "";
+    my $AddedFiles = "";
+    my $MovedFiles = ""; 
+    my $RenamedFiles = "";
+    my $RemovedFiles = "";
     my $JSort = "title='sort' onclick='javascript:sort(this, 1)' style='cursor:pointer'";
     foreach my $Format (sort {$FormatInfo{$b}{"Weight"}<=>$FormatInfo{$a}{"Weight"}}
     sort {lc($FormatInfo{$a}{"Summary"}) cmp lc($FormatInfo{$b}{"Summary"})} keys(%FileChanges))
@@ -2189,25 +2194,57 @@ sub getReportFiles()
                 }
             }
             
-            $Report .= "<tr>\n";
-            $Report .= "<td class='left f_path$Color1\'>$ShowFile</td>\n";
+
+            # $Report .= "<tr>\n";
+            $Report .= "$ShowFile";
             if($Info{"Status"} eq "changed") {
-                $Report .= "<td class='warning'>".$Info{"Status"}."</td>\n";
+                $Report .= $Info{"Status"};
+                if($ChangedFiles ne ""){
+                    $ChangedFiles .= ","
+                }
+                $ChangedFiles .= "\"$ShowFile\""
             }
             elsif($Info{"Status"} eq "unchanged") {
-                $Report .= "<td class='passed'>".$Info{"Status"}."</td>\n";
+                $Report .= $Info{"Status"}
             }
             elsif($Info{"Status"} eq "removed") {
-                $Report .= "<td class='failed'>".$Info{"Status"}."</td>\n";
+                $Report .= $Info{"Status"};
+                if($RemovedFiles ne ""){
+                    $RemovedFiles .= ","
+                }
+                $RemovedFiles .= "\"$ShowFile\""
             }
             elsif($Info{"Status"} eq "added") {
-                $Report .= "<td class='new'>".$Info{"Status"}."</td>\n";
+                $Report .= $Info{"Status"};
+                if($AddedFiles ne ""){
+                    $AddedFiles .= ","
+                }
+                $AddedFiles .= "\"$ShowFile\""
             }
             elsif($Info{"Status"} eq "renamed") {
-                $Report .= "<td class='renamed'$Join>".$Info{"Status"}."</td>\n";
+                $Report .= $Info{"Status"};
+                if($RenamedFiles ne ""){
+                    $RemovedFiles .= ","
+                }
+                if(my $RenamedTo = $RenamedFiles{$File}) {
+                    $RenamedFiles .= "{
+                        \"from\" : \"$ShowFile\",
+                        \"to\" : \"$RenamedTo\"
+                    }";
+                }
             }
             elsif($Info{"Status"} eq "moved") {
-                $Report .= "<td class='moved'$Join>".$Info{"Status"}."</td>\n";
+                $Report .= $Info{"Status"};
+                if($MovedFiles ne ""){
+                    $MovedFiles .= ","
+                }
+                if(my $MovedTo = $MovedFiles{$File}) {
+                    $MovedFiles .= 
+                    "{
+                        \"from\" : \"$ShowFile\",
+                        \"to\" : \"$MovedTo\"
+                    }";
+                }
             }
             else {
                 $Report .= "<td>unknown</td>\n";
@@ -2284,7 +2321,13 @@ sub getReportFiles()
         }
         $Report .= "</table>\n";
     }
-    return $Report;
+    return "{
+        \"changed\" : [$ChangedFiles],
+        \"removed\" : [$RemovedFiles],
+        \"added\" : [$AddedFiles],
+        \"renamed\" : [$RenamedFiles],
+        \"moved\" : [$MovedFiles]
+    }";
 }
 
 sub writeFile($$)
@@ -3490,14 +3533,14 @@ sub getSummary()
     
     if(keys(%TotalFiles))
     {
-        $FileChgs .= "<table class='summary highlight'>\n";
-        $FileChgs .= "<tr>";
-        $FileChgs .= "<th>File Type</th>";
-        $FileChgs .= "<th>Total</th>";
-        $FileChgs .= "<th>Added</th>";
-        $FileChgs .= "<th>Removed</th>";
-        $FileChgs .= "<th>Changed</th>";
-        $FileChgs .= "</tr>\n";
+        # $FileChgs .= "<table class='summary highlight'>\n";
+        # $FileChgs .= "<tr>";
+        # $FileChgs .= "<th>File Type</th>";
+        # $FileChgs .= "<th>Total</th>";
+        # $FileChgs .= "<th>Added</th>";
+        # $FileChgs .= "<th>Removed</th>";
+        # $FileChgs .= "<th>Changed</th>";
+        # $FileChgs .= "</tr>\n";
         foreach my $Format (sort {$FormatInfo{$b}{"Weight"}<=>$FormatInfo{$a}{"Weight"}}
         sort {lc($FormatInfo{$a}{"Summary"}) cmp lc($FormatInfo{$b}{"Summary"})} keys(%FormatInfo))
         {
@@ -3595,36 +3638,37 @@ sub createReport($)
     my $Description = $Header;
     $Description=~s/<[^<>]+>//g;
     
-    my $Report = $Header."\n";
+    # my $Report = $Header."\n";
+    my $Report = "";
     my $MainReport = getReportFiles();
     
     my $Legend = "<br/><table class='summary highlight'>
     <tr><td class='new' width='80px'>added</td><td class='passed' width='80px'>unchanged</td></tr>
     <tr><td class='warning'>changed</td><td class='failed'>removed</td></tr></table>\n";
     
-    $Report .= $Legend;
-    $Report .= getSummary();
+    # $Report .= $Legend;
+    # $Report .= getSummary();
     $Report .= $MainReport;
     
-    if(not $CompareDirs)
-    {
-        $Report .= getReportUsage();
-        $Report .= getSource();
-    }
+    # if(not $CompareDirs)
+    # {
+    #     $Report .= getReportUsage();
+    #     $Report .= getSource();
+    # }
     
-    $Report .= "<br/><a class='top_ref' href='#Top'>to the top</a><br/>\n";
+    # $Report .= "<br/><a class='top_ref' href='#Top'>to the top</a><br/>\n";
     
-    $STAT_LINE = "changed:".$RESULT{"affected"}.";".$STAT_LINE."tool_version:".$TOOL_VERSION;
-    $Report = "<!-- $STAT_LINE -->\n".composeHTMLHead($Title, $Keywords, $Description, $CssStyles, $JScripts)."\n<body>\n<div><a name='Top'></a>\n".$Report;
-    $Report .= "</div>\n<br/><br/><br/><hr/>\n";
+    # $STAT_LINE = "changed:".$RESULT{"affected"}.";".$STAT_LINE."tool_version:".$TOOL_VERSION;
+    # $Report = "<!-- $STAT_LINE -->\n".composeHTMLHead($Title, $Keywords, $Description, $CssStyles, $JScripts)."\n<body>\n<div><a name='Top'></a>\n".$Report;
+    # $Report .= "</div>\n<br/><br/><br/><hr/>\n";
     
-    # footer
-    $Report .= "<div class='footer' style='width:100%;' align='right'><i>Generated";
-    $Report .= " by <a href='".$HomePage."'>PkgDiff</a>";
-    $Report .= " $TOOL_VERSION &#160;";
-    $Report .= "</i></div><br/>\n";
+    # # footer
+    # $Report .= "<div class='footer' style='width:100%;' align='right'><i>Generated";
+    # $Report .= " by <a href='".$HomePage."'>PkgDiff</a>";
+    # $Report .= " $TOOL_VERSION &#160;";
+    # $Report .= "</i></div><br/>\n";
     
-    $Report .= "</body></html>";
+    # $Report .= "</body></html>";
     writeFile($Path, $Report);
     
     if($RESULT{"status"} eq "Changed") {
