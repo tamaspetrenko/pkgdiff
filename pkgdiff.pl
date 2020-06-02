@@ -2223,15 +2223,19 @@ sub getReportFiles()
             }
             elsif($Info{"Status"} eq "renamed") {
                 $Report .= $Info{"Status"};
-                if($RenamedFiles ne ""){
-                    $RemovedFiles .= ","
-                }
+
                 if(my $RenamedTo = $RenamedFiles{$File}) {
-                    $RenamedFiles .= "{
-                        \"from\" : \"$ShowFile\",
-                        \"to\" : \"$RenamedTo\"
-                    }";
-                }
+                    if($RemovedFiles ne ""){
+                        $RemovedFiles .= ","
+                    }
+                    $RemovedFiles .= "\"$ShowFile\"";
+
+                    if($AddedFiles ne ""){
+                        $AddedFiles .= ","
+                    }
+                    
+                        $AddedFiles .= "\"$RenamedTo\""
+                    } 
             }
             elsif($Info{"Status"} eq "moved") {
                 $Report .= $Info{"Status"};
@@ -2239,11 +2243,15 @@ sub getReportFiles()
                     $MovedFiles .= ","
                 }
                 if(my $MovedTo = $MovedFiles{$File}) {
-                    $MovedFiles .= 
-                    "{
-                        \"from\" : \"$ShowFile\",
-                        \"to\" : \"$MovedTo\"
-                    }";
+                    if($RemovedFiles ne ""){
+                        $RemovedFiles .= ","
+                    }
+                    $RemovedFiles .= "\"$ShowFile\"";
+
+                    if($AddedFiles ne ""){
+                        $AddedFiles .= ","
+                    }
+                    $AddedFiles .= "\"$MovedTo\""
                 }
             }
             else {
@@ -2324,9 +2332,7 @@ sub getReportFiles()
     return "{
         \"changed\" : [$ChangedFiles],
         \"removed\" : [$RemovedFiles],
-        \"added\" : [$AddedFiles],
-        \"renamed\" : [$RenamedFiles],
-        \"moved\" : [$MovedFiles]
+        \"added\" : [$AddedFiles]
     }";
 }
 
