@@ -777,8 +777,10 @@ sub compareFiles($$$$)
                 return (0, "", "", 0, {});
             }
         }
-        ($DLink, $Rate) = diffFiles($Page1, $Page2, getRPath("diffs", $N1));
-        
+        ($DLink, $Rate) = diffFilesCopy($Page1, $Page2, getRPath("diffs", $N1), 0);
+
+        copy($P2, getRPath("diffs", $N1));
+
         # clean space
         unlink($Page1);
         unlink($Page2);
@@ -945,7 +947,7 @@ sub showFile($$$)
     
     my $TmpFile = $TMP_DIR."/null";
     qx/$Cmd >"$SPath" 2>$TmpFile/;
-    
+
     if($Format eq "JAVA_CLASS") {
         chdir($ORIG_DIR);
     }
@@ -998,7 +1000,7 @@ sub getRPath($$)
 {
     my ($Prefix, $N) = @_;
     $N=~s/\A\///g;
-    my $RelPath = $Prefix."/".$N."-diff.html";
+    my $RelPath = $Prefix."/".$N;
     my $Path = $REPORT_DIR."/".$RelPath;
     return $Path;
 }
@@ -1187,9 +1189,13 @@ sub diffFiles($$$)
         $Cmd .= " --nowdiff";
     }
     
-    $Cmd .= " \"".$P1."\" \"".$P2."\" >\"".$Path."\" 2>$TMP_DIR/null";
+    $Cmd .= " \"".$P1."\" \"".$P2."\" 2>$TMP_DIR/null";
     $Cmd=~s/\$/\\\$/g;
+
+    copy($P2, $Path);
     
+    print "CMD : $Cmd";
+
     qx/$Cmd/;
     
     if(getSize($Path)<3500)
@@ -1216,6 +1222,76 @@ sub diffFiles($$$)
     unlink($TmpPath);
     
     return ($Path, $Rate);
+}
+
+sub diffFilesCopy($$$$)
+{
+    my ($P1, $P2, $Path, $Copy) = @_;
+    
+    if(not $P1 or not $P2) {
+        return ();
+    }
+    
+    mkpath(getDirname($Path));
+    
+    my $TmpPath = $TMP_DIR."/diff";
+    unlink($TmpPath);
+    
+    my $Cmd = "sh $DIFF --width $DiffWidth --stdout";
+    $Cmd .= " --tmpdiff \"$TmpPath\" --prelines $DiffLines";
+    
+    if($IgnoreSpaceChange) {
+        $Cmd .= " --ignore-space-change";
+    }
+    if($IgnoreAllSpace) {
+        $Cmd .= " --ignore-all-space";
+    }
+    if($IgnoreBlankLines) {
+        $Cmd .= " --ignore-blank-lines";
+    }
+    if($Minimal)
+    { # diff --minimal
+        $Cmd .= " --minimal";
+    }
+    if($NoWdiff) {
+        $Cmd .= " --nowdiff";
+    }
+    
+    $Cmd .= " \"".$P1."\" \"".$P2."\" 2>$TMP_DIR/null";
+    $Cmd=~s/\$/\\\$/g;
+
+    if($Copy){
+        copy($P2, $Path);
+    }   
+    
+    print "CMD : $Cmd";
+
+    qx/$Cmd/;
+    
+    if(getSize($Path)<3500)
+    { # may be identical
+        if(readFilePart($Path, 2)=~/The files are identical/i)
+        {
+            unlink($Path);
+            return ();
+        }
+    }
+    
+    if(getSize($Path)<3100)
+    { # may be identical or non-text
+        if(index(readFile($Path), "No changes")!=-1)
+        {
+            unlink($Path);
+            return ();
+        }
+    }
+    
+    my $Rate = getRate($P1, $P2, $TmpPath);
+    
+    # clean space
+    unlink($TmpPath);
+    
+    return ($P2, $Rate);
 }
 
 sub getRate($$$)
@@ -1449,7 +1525,7 @@ sub detectChanges()
     foreach my $E ("info-diffs", "diffs", "details") {
         mkpath($REPORT_DIR."/".$E);
     }
-    
+
     foreach my $Format (keys(%FormatInfo))
     {
         %{$FileChanges{$Format}} = (
@@ -1623,7 +1699,7 @@ sub detectChanges()
         
         my ($Changed, $DLink, $RLink, $Rate, $Adv) = compareFiles($Path, $NewPath, $Name, $NewName);
         my %Details = %{$Adv};
-        
+      
         if($Changed==1 or $Changed==3)
         {
             if($NewName eq $Name)
@@ -1784,7 +1860,7 @@ sub detectChanges()
     
     my $OldPkgs = keys(%{$TargetPackages{1}});
     my $NewPkgs = keys(%{$TargetPackages{2}});
-    
+
     if(keys(%PackageInfo)==2
     and $OldPkgs==1
     and $NewPkgs==1)
@@ -1792,7 +1868,7 @@ sub detectChanges()
         my @Names = keys(%PackageInfo);
         my $N1 = $Names[0];
         my $N2 = $Names[1];
-        
+      
         if(defined $PackageInfo{$N1}{"V2"})
         {
             $PackageInfo{$N2}{"V2"} = $PackageInfo{$N1}{"V2"};
@@ -1837,7 +1913,7 @@ sub detectChanges()
             writeFile($P2, $New);
             
             my ($DLink, $Rate) = diffFiles($P1, $P2, getRPath("info-diffs", $Package."-info"));
-            
+
             # clean space
             rmtree($TMP_DIR."/1/");
             rmtree($TMP_DIR."/2/");
@@ -2175,7 +2251,7 @@ sub getReportFiles()
             }
             
             my $ShowFile = $File;
-            
+
             if(defined $ListAddedRemoved
             and $Info{"Status"}=~/added|removed/)
             {
@@ -4169,3 +4245,4 @@ sub scenario()
 }
 
 scenario();
+7
