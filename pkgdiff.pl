@@ -1193,8 +1193,6 @@ sub diffFiles($$$)
     $Cmd=~s/\$/\\\$/g;
 
     copy($P2, $Path);
-    
-    print "CMD : $Cmd";
 
     qx/$Cmd/;
     
@@ -1263,8 +1261,6 @@ sub diffFilesCopy($$$$)
     if($Copy){
         copy($P2, $Path);
     }   
-    
-    print "CMD : $Cmd";
 
     qx/$Cmd/;
     
@@ -2149,10 +2145,10 @@ sub createFileView($$$)
     $Content .= "</body></html>";
     
     my $R = $Dir."/".$File."-view.html";
-    writeFile($REPORT_DIR."/".$R, $Content);
+    # writeFile($REPORT_DIR."/".$R, $Content);
     
     # plain copy
-    copy($Path, $REPORT_DIR."/".$Dir."/".getDirname($File)."/");
+    # copy($Path, $REPORT_DIR."/".$Dir."/".getDirname($File)."/");
     
     return $R;
 }
