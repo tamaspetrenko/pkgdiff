@@ -50,6 +50,8 @@ use File::Path qw(mkpath rmtree);
 use File::Temp qw(tempdir);
 use File::Copy qw(move copy);
 use File::Compare;
+use File::Find;
+use File::Basename;
 use Cwd qw(abs_path cwd);
 use Config;
 use Fcntl;
@@ -683,17 +685,20 @@ sub compareFiles($$$$)
     {
         if(not -l $P1)
         { # broken symlinks
+            # print "broken symlink $P1";
             return (0, "", "", 0, {});
         }
     }
     my $Format = getFormat($P1);
     if($Format ne getFormat($P2)) {
+        # print "format not equals $P1 $P2";
         return (0, "", "", 0, {});
     }
     if(getSize($P1) == getSize($P2))
     { # equal size
         if(compare($P1, $P2)==0)
         { # equal content
+            # print "equal content $P1 $P2";
             return (-1, "", "", 0, {});
         }
     }
@@ -703,10 +708,12 @@ sub compareFiles($$$$)
     }
     if(skipFileCompare($P1, 1))
     { # <skip_files>
+        # print "skipping file $P1";
         return (2, "", "", 1, {});
     }
     if(defined $SizeLimit)
     {
+        # print "sizelimit defined $SizeLimit";
         if(getSize($P1) > $SizeLimit*1024
         or getSize($P2) > $SizeLimit*1024)
         {
@@ -723,14 +730,20 @@ sub compareFiles($$$$)
         {
             if(not compareSymbols($P1, $P2))
             { # equal sets of symbols
+                # print "equal sets of symbols $P1 $P2";
                 return (0, "", "", 0, {});
             }
         }
     }
+
+    # print "file: $P2 format: $Format";
     
     if(defined $FormatInfo{$Format}{"Format"}
     and $FormatInfo{$Format}{"Format"} eq "Text") {
         ($DLink, $Rate) = diffFiles($P1, $P2, getRPath("diffs", $N1));
+        # ($DLink, $Rate) = diffFilesCopy($Page1, $Page2, getRPath("diffs", $N1), 0);
+        #
+        # copy($P2, getRPath("diffs", $N1));
     }
     elsif($Format eq "LICENSE"
     or $Format eq "CHANGELOG"
@@ -741,15 +754,22 @@ sub compareFiles($$$$)
         { # changelog.Debian.gz
             my $Page1 = showFile($P1, "ARCHIVE", 1);
             my $Page2 = showFile($P2, "ARCHIVE", 2);
-            ($DLink, $Rate) = diffFiles($Page1, $Page2, getRPath("diffs", $N1));
-            
+            # ($DLink, $Rate) = diffFiles($Page1, $Page2, getRPath("diffs", $N1));
+            ($DLink, $Rate) = diffFilesCopy($Page1, $Page2, getRPath("diffs", $N1), 0);
+
+            copy($P2, getRPath("diffs", $N1));
             # clean space
             unlink($Page1);
             unlink($Page2);
         }
         else
         { 
-            ($DLink, $Rate) = diffFiles($P1, $P2, getRPath("diffs", $N1));
+            # ($DLink, $Rate) = diffFiles($P1, $P2, getRPath("diffs", $N1));
+            my $Page1 = showFile($P1, $Format, 1);
+            my $Page2 = showFile($P2, $Format, 2);
+            ($DLink, $Rate) = diffFilesCopy($Page1, $Page2, getRPath("diffs", $N1), 0);
+
+            copy($P2, getRPath("diffs", $N1));
         }
     }
     elsif($Format eq "SHARED_OBJECT"
@@ -1773,6 +1793,8 @@ sub detectChanges()
     { # checking added files
         my $Path = $PackageFiles{2}{$Name};
         my $Format = getFormat($Path);
+        my $DestPath = getRPath("diffs", $Name);
+
         $FileChanges{$Format}{"Total"} += 1;
         $FileChanges{$Format}{"Added"} += 1;
         if(my $Size = getSize($Path))
@@ -1780,6 +1802,22 @@ sub detectChanges()
             $FileChanges{$Format}{"SizeDelta"} += $Size;
             $FileChanges{$Format}{"Size"} += $Size;
         }
+
+        if (! -d $DestPath)
+        {
+            my @fdArray = split /\//, $DestPath;
+            pop @fdArray;
+            my $fd = join( '/', @fdArray );
+
+            if(! -d $fd and not -f $fd){
+                mkpath($fd);
+            }
+        }
+
+        if(not -f $DestPath){
+            copy($Path, $DestPath);
+        }
+
         $FileChanges{$Format}{"Details"}{$Name}{"Status"} = "added";
     }
 
