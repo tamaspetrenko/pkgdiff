@@ -1809,7 +1809,7 @@ sub detectChanges()
             pop @fdArray;
             my $fd = join( '/', @fdArray );
 
-            if(! -d $fd and not -f $fd){
+            if(! -d $fd and ! -f $fd and ! -e $fd){
                 mkpath($fd);
             }
         }
