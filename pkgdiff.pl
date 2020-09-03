@@ -1809,8 +1809,12 @@ sub detectChanges()
             pop @fdArray;
             my $fd = join( '/', @fdArray );
 
-            if((! -e $fd) and (! -d $fd) and (! -f $fd)){
-                mkpath($fd);
+            if (-e $fd){
+                if (! -d $fd){
+                    if (! -f $fd){
+                        mkpath($fd);
+                    }
+                }
             }
         }
 
@@ -4084,7 +4088,7 @@ sub scenario()
     }
     
     readFileTypes();
-    
+
     if($CompareDirs) {
         printMsg("INFO", "Reading directories ...");
     }
@@ -4249,7 +4253,7 @@ sub scenario()
             }
         }
     }
-    
+
     if($CompareDirs) {
         printMsg("INFO", "Comparing directories ...");
     }
