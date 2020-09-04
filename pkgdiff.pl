@@ -1788,6 +1788,17 @@ sub detectChanges()
         }
         %{$FileChanges{$Format}{"Details"}{$Name}} = %Details;
     }
+
+    foreach my $Name (keys(%AddedFiles))
+    { # checking added files
+        my $Path = $PackageFiles{2}{$Name};
+        my $DestPath = getRPath("diffs", $Name);
+
+        if (-d $Path)
+        {
+            mkpath($DestPath);
+        }
+    }
     
     foreach my $Name (keys(%AddedFiles))
     { # checking added files
@@ -1803,22 +1814,7 @@ sub detectChanges()
             $FileChanges{$Format}{"Size"} += $Size;
         }
 
-        if (! -d $DestPath)
-        {
-            my @fdArray = split /\//, $DestPath;
-            pop @fdArray;
-            my $fd = join( '/', @fdArray );
-
-            if (-e $fd){
-                if (! -d $fd){
-                    if (! -f $fd){
-                        mkpath($fd);
-                    }
-                }
-            }
-        }
-
-        if(! -e $DestPath and ! -f $DestPath and ! -d $DestPath){
+        if(-f $Path && ! -d $Path) {
             copy($Path, $DestPath);
         }
 
