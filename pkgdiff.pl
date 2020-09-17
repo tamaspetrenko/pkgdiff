@@ -688,6 +688,7 @@ sub compareFiles($$$$)
             # print "broken symlink $P1";
             return (0, "", "", 0, {});
         }
+        # print "Could not find file";
     }
     my $Format = getFormat($P1);
     if($Format ne getFormat($P2)) {
@@ -736,14 +737,19 @@ sub compareFiles($$$$)
         }
     }
 
-    # print "file: $P2 format: $Format";
+    # print "\n file: $P2 \n format: $Format \n Name: $N1";
+    if (index($N1, "/") != -1) {
+        $N1 = (split '/', $N1)[-1];
+        # print "name changed to: $N1"
+    }
+    my $dirName = getDirname($P2);
+    my $filePath = (split '.jar/', $dirName)[-1];
+    my $path = getRPath("diffs/$filePath", $N1);
     
     if(defined $FormatInfo{$Format}{"Format"}
     and $FormatInfo{$Format}{"Format"} eq "Text") {
-        ($DLink, $Rate) = diffFiles($P1, $P2, getRPath("diffs", $N1));
-        # ($DLink, $Rate) = diffFilesCopy($Page1, $Page2, getRPath("diffs", $N1), 0);
-        #
-        # copy($P2, getRPath("diffs", $N1));
+        ($DLink, $Rate) = diffFiles($P1, $P2, getRPath("diffs/$filePath", $N1));
+        # print "\n copying... \n name: $N1 \n rPath: $path \n calcPath: $filePath \n";
     }
     elsif($Format eq "LICENSE"
     or $Format eq "CHANGELOG"
@@ -754,23 +760,17 @@ sub compareFiles($$$$)
         { # changelog.Debian.gz
             my $Page1 = showFile($P1, "ARCHIVE", 1);
             my $Page2 = showFile($P2, "ARCHIVE", 2);
-            # ($DLink, $Rate) = diffFiles($Page1, $Page2, getRPath("diffs", $N1));
-            ($DLink, $Rate) = diffFilesCopy($Page1, $Page2, getRPath("diffs", $N1), 0);
-
-            copy($P2, getRPath("diffs", $N1));
+            ($DLink, $Rate) = diffFiles($Page1, $Page2, getRPath("diffs/$filePath", $N1));
             # clean space
             unlink($Page1);
             unlink($Page2);
         }
         else
         { 
-            # ($DLink, $Rate) = diffFiles($P1, $P2, getRPath("diffs", $N1));
-            my $Page1 = showFile($P1, $Format, 1);
-            my $Page2 = showFile($P2, $Format, 2);
-            ($DLink, $Rate) = diffFilesCopy($Page1, $Page2, getRPath("diffs", $N1), 0);
+            ($DLink, $Rate) = diffFiles($P1, $P2, getRPath("diffs/$filePath", $N1));
 
-            copy($P2, getRPath("diffs", $N1));
         }
+        # print "\n copying... \n name: $N1 \n rPath: $path \n calcPath: $filePath \n";
     }
     elsif($Format eq "SHARED_OBJECT"
     or $Format eq "KERNEL_MODULE"
@@ -797,9 +797,9 @@ sub compareFiles($$$$)
                 return (0, "", "", 0, {});
             }
         }
-        ($DLink, $Rate) = diffFilesCopy($Page1, $Page2, getRPath("diffs", $N1), 0);
+        ($DLink, $Rate) = diffFilesCopy($Page1, $Page2, $path, 0);
 
-        copy($P2, getRPath("diffs", $N1));
+        copy($P2, $path);
 
         # clean space
         unlink($Page1);
@@ -809,6 +809,7 @@ sub compareFiles($$$$)
     {
         $Changed = 1;
         $Rate = checkDiff($P1, $P2);
+        copy($P2, $path);
     }
     
     if($DLink or $Changed)
@@ -1712,7 +1713,8 @@ sub detectChanges()
         { # moved files
             $NewPath = $PackageFiles{2}{$NewName};
         }
-        
+
+        # print "Comparing files... \n Path: $Path \n newPath: $NewPath \n name: $Name \n newName: $NewName";
         my ($Changed, $DLink, $RLink, $Rate, $Adv) = compareFiles($Path, $NewPath, $Name, $NewName);
         my %Details = %{$Adv};
       
@@ -1733,7 +1735,7 @@ sub detectChanges()
                 $Details{"Report"} = $RLink;
                 $ChangeRate{$Name} = $Rate;
             }
-            
+
             $ChangedFiles{$Name} = 1;
         }
         elsif($Changed==2)
@@ -2317,7 +2319,7 @@ sub getReportFiles()
             elsif($Info{"Status"} eq "unchanged") {
                 $Report .= $Info{"Status"};
 
-                if (index($ShowFile, ".") != -1) {
+                if (index($ShowFile, "MANIFEST") != -1) {
 
                     if ($ChangedFiles ne "") {
                         $ChangedFiles .= ","
