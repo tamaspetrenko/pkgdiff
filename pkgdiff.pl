@@ -2315,7 +2315,17 @@ sub getReportFiles()
                 $ChangedFiles .= "\"$ShowFile\""
             }
             elsif($Info{"Status"} eq "unchanged") {
-                $Report .= $Info{"Status"}
+                $Report .= $Info{"Status"};
+
+                if (index($ShowFile, ".") != -1) {
+
+                    if ($ChangedFiles ne "") {
+                        $ChangedFiles .= ","
+                    }
+                    $ChangedFiles .= "\"$ShowFile\""
+                }
+
+
             }
             elsif($Info{"Status"} eq "removed") {
                 $Report .= $Info{"Status"};
