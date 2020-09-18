@@ -738,18 +738,22 @@ sub compareFiles($$$$)
     }
 
     # print "\n file: $P2 \n format: $Format \n Name: $N1";
-    if (index($N1, "/") != -1) {
-        $N1 = (split '/', $N1)[-1];
-        # print "name changed to: $N1"
-    }
     my $dirName = getDirname($P2);
     my $filePath = (split '.jar/', $dirName)[-1];
-    my $path = getRPath("diffs/$filePath", $N1);
+
+    if (index($P2, "/") != -1) {
+        my $fileName = (split '/', $N1)[-1];
+        $N1 = "$filePath/$fileName";
+        # print "name changed to: $N1";
+    }
+
+    my $path = getRPath("diffs", $N1);
+
+    # print "\n copying... \n name: $N1 \n rPath: $path \n calcPath: $filePath \n";
     
     if(defined $FormatInfo{$Format}{"Format"}
     and $FormatInfo{$Format}{"Format"} eq "Text") {
-        ($DLink, $Rate) = diffFiles($P1, $P2, getRPath("diffs/$filePath", $N1));
-        # print "\n copying... \n name: $N1 \n rPath: $path \n calcPath: $filePath \n";
+        ($DLink, $Rate) = diffFiles($P1, $P2, $path);
     }
     elsif($Format eq "LICENSE"
     or $Format eq "CHANGELOG"
@@ -760,17 +764,16 @@ sub compareFiles($$$$)
         { # changelog.Debian.gz
             my $Page1 = showFile($P1, "ARCHIVE", 1);
             my $Page2 = showFile($P2, "ARCHIVE", 2);
-            ($DLink, $Rate) = diffFiles($Page1, $Page2, getRPath("diffs/$filePath", $N1));
+            ($DLink, $Rate) = diffFiles($Page1, $Page2, $path);
             # clean space
             unlink($Page1);
             unlink($Page2);
         }
         else
         { 
-            ($DLink, $Rate) = diffFiles($P1, $P2, getRPath("diffs/$filePath", $N1));
+            ($DLink, $Rate) = diffFiles($P1, $P2, $path);
 
         }
-        # print "\n copying... \n name: $N1 \n rPath: $path \n calcPath: $filePath \n";
     }
     elsif($Format eq "SHARED_OBJECT"
     or $Format eq "KERNEL_MODULE"
@@ -822,16 +825,16 @@ sub compareFiles($$$$)
                 or $Format eq "KERNEL_MODULE"
                 or $Format eq "DEBUG_INFO"
                 or $Format eq "STATIC_LIBRARY") {
-                    ($RLink, $Adv) = compareABIs($P1, $P2, $N1, $N2, getRPath("details", $N1));
+                    ($RLink, $Adv) = compareABIs($P1, $P2, $N1, $N2, $path);
                 }
             }
         }
         $DLink=~s/\A\Q$REPORT_DIR\E\///;
         $RLink=~s/\A\Q$REPORT_DIR\E\///;
-        return (1, $DLink, $RLink, $Rate, $Adv);
+        return (1, $DLink, $RLink, $Rate, $Adv, $N1);
     }
     
-    return (0, "", "", 0, {});
+    return (0, "", "", 0, {}, $N1);
 }
 
 sub hexDump($)
@@ -1714,8 +1717,10 @@ sub detectChanges()
             $NewPath = $PackageFiles{2}{$NewName};
         }
 
-        # print "Comparing files... \n Path: $Path \n newPath: $NewPath \n name: $Name \n newName: $NewName";
-        my ($Changed, $DLink, $RLink, $Rate, $Adv) = compareFiles($Path, $NewPath, $Name, $NewName);
+        # print "Comparing files... \n Path: $Path \n newPath: $NewPath \n name: $Name \n newName: $NewName \n";
+        my ($Changed, $DLink, $RLink, $Rate, $Adv, $newN1) = compareFiles($Path, $NewPath, $Name, $NewName);
+        $Name = $newN1;
+        # print "Returned... \n Changed: $Changed \n DLink: $DLink \n newN1: $Name \n Adv: $Adv \n";
         my %Details = %{$Adv};
       
         if($Changed==1 or $Changed==3)
