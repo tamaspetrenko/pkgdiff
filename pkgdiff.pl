@@ -737,14 +737,25 @@ sub compareFiles($$$$)
         }
     }
 
-    # print "\n file: $P2 \n format: $Format \n Name: $N1";
+    # print "\n file: $P2 \n NameBefore: $N1 \n";
     my $dirName = getDirname($P2);
     my $filePath = (split '.jar/', $dirName)[-1];
+    my $shouldChange = 1;
+
+    if(index($filePath, ".jar") != -1){
+        $shouldChange = 0;
+        # print "should not change \n";
+    }
+
+    # print "filePath: $filePath \n";
 
     if (index($P2, "/") != -1) {
         my $fileName = (split '/', $P2)[-1];
-        $N1 = "$filePath/$fileName";
-        # print "name changed to: $N1";
+        if($shouldChange){
+            $N1 = "$filePath/$fileName";
+        }
+
+        # print "name changed to: $N1 \n";
     }
 
     my $path = getRPath("diffs", $N1);
