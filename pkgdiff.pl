@@ -742,14 +742,14 @@ sub compareFiles($$$$)
     my $filePath = (split '.jar/', $dirName)[-1];
 
     if (index($P2, "/") != -1) {
-        my $fileName = (split '/', $N1)[-1];
+        my $fileName = (split '/', $P2)[-1];
         $N1 = "$filePath/$fileName";
         # print "name changed to: $N1";
     }
 
     my $path = getRPath("diffs", $N1);
 
-    # print "\n copying... \n name: $N1 \n rPath: $path \n calcPath: $filePath \n";
+    # print "\n copying... \n name: $N1 \n rPath: $path \n calcPath: $filePath \n format: $Format \n";
     
     if(defined $FormatInfo{$Format}{"Format"}
     and $FormatInfo{$Format}{"Format"} eq "Text") {
@@ -810,8 +810,11 @@ sub compareFiles($$$$)
     }
     else
     {
+        # print "\n else... \n name: $N1 \n format: $Format \n";
         $Changed = 1;
         $Rate = checkDiff($P1, $P2);
+        # print "\n copying... \n from: $P2 \n to: $path \n";
+        mkpath(getDirname($path));
         copy($P2, $path);
     }
     
