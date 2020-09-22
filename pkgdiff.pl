@@ -685,21 +685,17 @@ sub compareFiles($$$$)
     {
         if(not -l $P1)
         { # broken symlinks
-            # print "broken symlink $P1";
             return (0, "", "", 0, {});
         }
-        # print "Could not find file";
     }
     my $Format = getFormat($P1);
     if($Format ne getFormat($P2)) {
-        # print "format not equals $P1 $P2";
         return (0, "", "", 0, {});
     }
     if(getSize($P1) == getSize($P2))
     { # equal size
         if(compare($P1, $P2)==0)
         { # equal content
-            # print "equal content $P1 $P2";
             return (-1, "", "", 0, {});
         }
     }
@@ -709,12 +705,10 @@ sub compareFiles($$$$)
     }
     if(skipFileCompare($P1, 1))
     { # <skip_files>
-        # print "skipping file $P1";
         return (2, "", "", 1, {});
     }
     if(defined $SizeLimit)
     {
-        # print "sizelimit defined $SizeLimit";
         if(getSize($P1) > $SizeLimit*1024
         or getSize($P2) > $SizeLimit*1024)
         {
@@ -731,37 +725,28 @@ sub compareFiles($$$$)
         {
             if(not compareSymbols($P1, $P2))
             { # equal sets of symbols
-                # print "equal sets of symbols $P1 $P2";
                 return (0, "", "", 0, {});
             }
         }
     }
 
-    # print "\n file: $P2 \n NameBefore: $N1 \n";
     my $dirName = getDirname($P2);
     my $filePath = (split '.jar/', $dirName)[-1];
     my $shouldChange = 1;
 
     if(index($filePath, ".jar") != -1){
         $shouldChange = 0;
-        # print "should not change \n";
     }
-
-    # print "filePath: $filePath \n";
 
     if (index($P2, "/") != -1) {
         my $fileName = (split '/', $P2)[-1];
         if($shouldChange){
             $N1 = "$filePath/$fileName";
         }
-
-        # print "name changed to: $N1 \n";
     }
 
     my $path = getRPath("diffs", $N1);
 
-    # print "\n copying... \n name: $N1 \n rPath: $path \n calcPath: $filePath \n format: $Format \n";
-    
     if(defined $FormatInfo{$Format}{"Format"}
     and $FormatInfo{$Format}{"Format"} eq "Text") {
         ($DLink, $Rate) = diffFiles($P1, $P2, $path);
@@ -811,9 +796,7 @@ sub compareFiles($$$$)
                 return (0, "", "", 0, {});
             }
         }
-        ($DLink, $Rate) = diffFilesCopy($Page1, $Page2, $path, 0);
-
-        copy($P2, $path);
+        ($DLink, $Rate) = diffFiles($Page1, $Page2, $path);
 
         # clean space
         unlink($Page1);
@@ -821,12 +804,8 @@ sub compareFiles($$$$)
     }
     else
     {
-        # print "\n else... \n name: $N1 \n format: $Format \n";
         $Changed = 1;
         $Rate = checkDiff($P1, $P2);
-        # print "\n copying... \n from: $P2 \n to: $path \n";
-        mkpath(getDirname($path));
-        copy($P2, $path);
     }
     
     if($DLink or $Changed)
@@ -1202,7 +1181,7 @@ sub diffFiles($$$)
         return ();
     }
     
-    mkpath(getDirname($Path));
+    # mkpath(getDirname($Path));
     
     my $TmpPath = $TMP_DIR."/diff";
     unlink($TmpPath);
@@ -1230,7 +1209,7 @@ sub diffFiles($$$)
     $Cmd .= " \"".$P1."\" \"".$P2."\" 2>$TMP_DIR/null";
     $Cmd=~s/\$/\\\$/g;
 
-    copy($P2, $Path);
+    # copy($P2, $Path);
 
     qx/$Cmd/;
     
