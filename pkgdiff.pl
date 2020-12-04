@@ -2312,9 +2312,11 @@ sub getReportFiles()
                 if($ChangedFiles ne ""){
                     $ChangedFiles .= ","
                 }
-                $ChangedFiles .= "\"$ShowFile\""
+                $ChangedFiles .= "\"$ShowFile\"";
+                print "changed: $ShowFile \n"
             }
             elsif($Info{"Status"} eq "unchanged") {
+                print "unchanged: $ShowFile \n";
                 $Report .= $Info{"Status"};
 
                 if (index($ShowFile, "MANIFEST") != -1) {
@@ -2328,6 +2330,7 @@ sub getReportFiles()
 
             }
             elsif($Info{"Status"} eq "removed") {
+                print "removed: $ShowFile \n";
                 $Report .= $Info{"Status"};
                 if($RemovedFiles ne ""){
                     $RemovedFiles .= ","
@@ -2335,6 +2338,7 @@ sub getReportFiles()
                 $RemovedFiles .= "\"$ShowFile\""
             }
             elsif($Info{"Status"} eq "added") {
+                print "added: $ShowFile \n";
                 $Report .= $Info{"Status"};
                 if($AddedFiles ne ""){
                     $AddedFiles .= ","
@@ -2343,6 +2347,8 @@ sub getReportFiles()
             }
             elsif($Info{"Status"} eq "renamed") {
                 $Report .= $Info{"Status"};
+
+                print "renamed: $ShowFile \n";
 
                 if(my $RenamedTo = $RenamedFiles{$File}) {
                     if($RemovedFiles ne ""){
@@ -2358,6 +2364,8 @@ sub getReportFiles()
                     } 
             }
             elsif($Info{"Status"} eq "moved") {
+                print "moved: $ShowFile \n";
+
                 $Report .= $Info{"Status"};
                 if($MovedFiles ne ""){
                     $MovedFiles .= ","
@@ -2375,6 +2383,7 @@ sub getReportFiles()
                 }
             }
             else {
+                print "unknown: $ShowFile \n";
                 $Report .= "<td>unknown</td>\n";
             }
             if($Format ne "DIR")
